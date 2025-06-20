@@ -1,0 +1,14 @@
+{
+  "preprocessing_steps": [
+    "Download text data từ Google Drive",
+    "Load và clean text files",
+    "Tokenize text sequences",
+    "Create attention masks",
+    "Encode labels",
+    "Prepare datasets"
+  ],
+  "code_imports": "from transformers import AutoTokenizer\nimport pandas as pd\nimport numpy as np\nimport os\nfrom pathlib import Path\nimport gdown\nimport json",
+  "preprocessing_functions": "def clean_text(text):\n    return text.strip().lower()\n\ndef tokenize_texts(texts, tokenizer, max_length=512):\n    return tokenizer(texts, truncation=True, padding=True, max_length=max_length, return_tensors='pt')",
+  "main_preprocessing_code": "# Download and preprocess text data\ndownload_from_drive(drive_url, 'data/')\ntexts = pd.read_csv('data/texts.csv')\ntokenizer = AutoTokenizer.from_pretrained(model_name)\nencoded = tokenize_texts(texts['text'].tolist(), tokenizer)",
+  "data_validation": "assert 'input_ids' in encoded and 'attention_mask' in encoded"
+}

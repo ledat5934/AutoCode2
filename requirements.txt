@@ -1,0 +1,13 @@
+langchain
+langchain-google-genai
+python-dotenv
+pydantic
+requests
+beautifulsoup4
+pillow
+librosa
+numpy
+pandas
+torch
+torchvision
+opencv-python
