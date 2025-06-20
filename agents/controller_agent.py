@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 import sys
@@ -18,7 +18,7 @@ class ControllerAgent:
         print("🎯 Controller Agent: Đang khởi tạo...")
         try:
             # STRUCTURED OUTPUT CONFIGURATION
-            self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+            self.llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.1)
             print("✅ Controller Agent: LLM khởi tạo thành công")
         except Exception as e:
             print(f"❌ Controller Agent: Lỗi khởi tạo LLM: {e}")
@@ -78,7 +78,7 @@ class ControllerAgent:
             )
             print("✅ Controller: Prompt tạo thành công")
             
-            print("🌐 Controller: Đang gọi Gemini API...")
+            print("🌐 Controller: Đang gọi OpenAI API...")
             start_time = time.time()
             
             response = self.llm.invoke(prompt.to_messages())

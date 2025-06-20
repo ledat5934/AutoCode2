@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 import sys
@@ -17,7 +17,7 @@ class SelectorAgent:
     def __init__(self):
         print("🤖 Selector Agent: Đang khởi tạo...")
         try:
-            self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+            self.llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.1)
             print("✅ Selector Agent: LLM khởi tạo thành công")
         except Exception as e:
             print(f"❌ Selector Agent: Lỗi khởi tạo LLM: {e}")

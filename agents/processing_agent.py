@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 import sys
@@ -17,7 +17,7 @@ class ProcessingAgent:
     def __init__(self):
         print("⚙️ Processing Agent: Đang khởi tạo...")
         try:
-            self.llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", temperature=0.1)
+            self.llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.1)
             print("✅ Processing Agent: LLM khởi tạo thành công")
         except Exception as e:
             print(f"❌ Processing Agent: Lỗi khởi tạo LLM: {e}")
@@ -116,7 +116,7 @@ class ProcessingAgent:
             )
             print("✅ Processing: Prompt tạo thành công")
             
-            print("🌐 Processing: Đang gọi Gemini API...")
+            print("🌐 Processing: Đang gọi OpenAI API...")
             start_time = time.time()
             
             response = self.llm.invoke(prompt.to_messages())

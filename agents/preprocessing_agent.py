@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 import sys
@@ -17,7 +17,7 @@ class PreprocessingAgent:
     def __init__(self):
         print("🛠️ Preprocessing Agent: Đang khởi tạo...")
         try:
-            self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+            self.llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0.1)
             print("✅ Preprocessing Agent: LLM khởi tạo thành công")
         except Exception as e:
             print(f"❌ Preprocessing Agent: Lỗi khởi tạo LLM: {e}")
@@ -131,7 +131,7 @@ class PreprocessingAgent:
             )
             print("✅ Preprocessing: Prompt tạo thành công")
             
-            print("🌐 Preprocessing: Đang gọi Gemini API...")
+            print("🌐 Preprocessing: Đang gọi OpenAI API...")
             start_time = time.time()
             
             response = self.llm.invoke(prompt.to_messages())
@@ -155,7 +155,7 @@ class PreprocessingAgent:
                 return code
             else:
                 print("❌ Preprocessing: Response is None or empty!")
-                raise Exception("Empty response from Gemini API")
+                raise Exception("Empty response from OpenAI API")
                 
         except Exception as e:
             print(f"❌ Preprocessing: Lỗi trong quá trình tạo preprocessing code: {e}")
