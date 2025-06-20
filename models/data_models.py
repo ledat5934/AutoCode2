@@ -18,7 +18,7 @@ class ModelSelection(BaseModel):
 class PreprocessingCode(BaseModel):
     preprocessing_steps: List[str] = Field(description="The list of preprocessing steps")
     code_imports: str = Field(description="Import neccessary libraries")
-    function: List[str] = Field(description="The list of function use for preprocessing")
+    preprocessing_functions: List[str] = Field(description="The list of function use for preprocessing")
     main_function: str = Field(description="The main function for preprocessing using function")
 
 class ProcessingCode(BaseModel):

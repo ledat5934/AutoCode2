@@ -20,6 +20,7 @@ from agents.selector_agent import SelectorAgent
 from agents.preprocessing_agent import PreprocessingAgent
 from agents.processing_agent import ProcessingAgent
 from agents.postprocessing_agent import PostprocessingAgent
+from agents.validator_agent import ValidatorAgent
 
 from config import DEFAULT_PROBLEM, DEFAULT_MODEL_POOL, OUTPUTS_DIR, TEMP_DIR
 from utils import save_intermediate_result, create_final_solution_script, display_pipeline_summary
@@ -37,6 +38,7 @@ class GeneralMLPipeline:
         self.preprocessor = PreprocessingAgent()
         self.processor = ProcessingAgent()
         self.postprocessor = PostprocessingAgent()
+        self.validator = ValidatorAgent()
         
         # Storage for results
         self.results = {}
@@ -73,7 +75,7 @@ class GeneralMLPipeline:
         
         print("=" * 60)
 
-    def execute_pipeline(self, problem_description: str, model_pool: list, data_source: str = "") -> PipelineResult:
+    def execute_pipeline(self, problem_description: str, model_pool: list, data_source: str = "", data_description: str = "") -> PipelineResult:
         """
         Execute the complete ML pipeline for ANY problem domain
         
@@ -81,7 +83,7 @@ class GeneralMLPipeline:
             problem_description (str): Description of the ML problem to solve
             model_pool (list): List of HuggingFace model URLs to choose from
             data_source (str): URL or path to data source (Google Drive, local path, etc.)
-            
+            data_description (str): Description of the data source
         Returns:
             PipelineResult: Complete execution result with generated solution
         """
@@ -91,6 +93,8 @@ class GeneralMLPipeline:
         print("="*80)
         print(f"📝 Problem: {problem_description}")
         print(f"🤖 Model Pool ({len(model_pool)} models):")
+        print(f"🔗 Data Source: {data_source[:100]}..." if data_source else "🔗 No data source provided")
+        print(f"🔗 Data Description: {data_description}")
         for i, model in enumerate(model_pool, 1):
             model_name = model.split('/')[-1] if '/' in model else model
             print(f"   {i}. {model_name}")
@@ -103,7 +107,7 @@ class GeneralMLPipeline:
             print("-" * 50)
             print("🤖 Controller Agent analyzing problem and designing solution approach...")
             
-            guideline = self.controller.create_guideline(problem_description, data_source)
+            guideline = self.controller.create_guideline(problem_description, data_source, data_description)
             self.results['guideline'] = guideline
             save_intermediate_result('guideline', guideline, TEMP_DIR)
             
@@ -129,7 +133,7 @@ class GeneralMLPipeline:
             print("⚙️ Preprocessing Agent generating data processing code...")
             
             preprocessing_code = self.preprocessor.generate_preprocessing_code(
-                guideline, model_selection, data_source
+                guideline, model_selection, data_source, data_description
             )
             self.results['preprocessing_code'] = preprocessing_code
             save_intermediate_result('preprocessing_code', preprocessing_code, TEMP_DIR)
@@ -162,169 +166,199 @@ class GeneralMLPipeline:
             
             self.debug_print_result("POSTPROCESSING CODE", postprocessing_code)
             
-            # Create complete solution script
-            print("\n🔨 CREATING COMPLETE ML SOLUTION SCRIPT...")
+            # STEP 11: Create complete solution script
+            print("\n🔨 STEP 11: CREATING COMPLETE ML SOLUTION SCRIPT...")
+            print("-" * 50)
             final_script_path = create_final_solution_script(self.results, OUTPUTS_DIR)
+            print(f"✅ Generated solution script: {final_script_path}")
+            
+            # STEP 12: VALIDATION & EXECUTION
+            print("\n🔍 STEP 12: CODE VALIDATION & EXECUTION")
+            print("-" * 50)
+            print("🛡️ Validator Agent checking and fixing code...")
+            
+            validation_result = self.validator.process_pipeline_result(final_script_path, data_source, data_description)
+            
+            # Debug validation result
+            self.debug_print_result("VALIDATION RESULT", validation_result)
             
             execution_time = time.time() - start_time
             
-            # Success summary
-            print("\n🎉 PIPELINE EXECUTION SUMMARY:")
-            print("="*60)
-            print(f"✅ Controller: Analyzed problem and designed solution approach")
-            print(f"✅ Selector: Selected optimal model from {len(model_pool)} options")
-            print(f"✅ Preprocessor: Generated adaptive data processing pipeline")
-            print(f"✅ Processor: Created universal inference code")
-            print(f"✅ Postprocessor: Generated appropriate output formatting")
-            print(f"⏱️ Total execution time: {execution_time:.2f} seconds")
-            print("="*60)
-            
-            # Create result object
-            result = PipelineResult(
-                success=True,
-                output_file=final_script_path,
-                execution_time=execution_time,
-                statistics={
-                    "selected_models": len(model_selection.selected_models),
-                    "processing_time": execution_time,
-                    "timestamp": datetime.now().isoformat(),
-                    "data_source": data_source,
-                    "problem_type": problem_description[:100]
-                },
-                error_message=None
-            )
-            
-            print(f"\n🎉 GENERAL ML PIPELINE COMPLETED SUCCESSFULLY!")
-            print(f"⏱️ Execution time: {execution_time:.2f} seconds")
-            print(f"📄 Complete solution script: {final_script_path}")
-            print(f"💡 The generated script can handle your specific ML task!")
+            if validation_result.success:
+                # Success với validator
+                print("\n🎉 PIPELINE WITH VALIDATION COMPLETED SUCCESSFULLY!")
+                print("="*60)
+                print(f"✅ Controller: Analyzed problem and designed solution approach")
+                print(f"✅ Selector: Selected optimal model from {len(model_pool)} options")
+                print(f"✅ Preprocessor: Generated adaptive data processing pipeline")
+                print(f"✅ Processor: Created universal inference code")
+                print(f"✅ Postprocessor: Generated appropriate output formatting")
+                print(f"✅ Validator: Fixed code and executed successfully")
+                print(f"📄 Generated CSV output: {validation_result.output_file}")
+                print(f"⏱️ Total execution time: {execution_time:.2f} seconds")
+                
+                # Display validation statistics
+                if validation_result.statistics:
+                    print(f"\n📊 OUTPUT STATISTICS:")
+                    stats = validation_result.statistics
+                    if 'total_rows' in stats:
+                        print(f"   📝 Total rows: {stats['total_rows']}")
+                    if 'columns' in stats:
+                        print(f"   📋 Columns: {stats['columns']}")
+                    if 'class_distribution' in stats:
+                        print(f"   📈 Class distribution: {stats['class_distribution']}")
+                    if 'format_valid' in stats:
+                        print(f"   ✅ Format validation: {stats['format_valid']}")
+                
+                # Return successful result with validation info
+                result = PipelineResult(
+                    success=True,
+                    output_file=validation_result.output_file,
+                    execution_time=execution_time,
+                    statistics={
+                        "selected_models": len(model_selection.selected_models),
+                        "processing_time": execution_time,
+                        "validation_time": validation_result.execution_time,
+                        "validation_stats": validation_result.statistics,
+                        "timestamp": datetime.now().isoformat(),
+                        "data_source": data_source,
+                        "problem_type": problem_description[:100],
+                        "final_script": final_script_path,
+                        "csv_output": validation_result.output_file
+                    },
+                    error_message=None
+                )
+                
+            else:
+                # Validation failed
+                print("\n⚠️ PIPELINE COMPLETED BUT VALIDATION FAILED")
+                print("="*60)
+                print(f"✅ Code generation completed successfully")
+                print(f"❌ Code validation/execution failed")
+                print(f"💾 Generated script available: {final_script_path}")
+                print(f"⚠️ Validation error: {validation_result.error_message}")
+                print(f"⏱️ Total execution time: {execution_time:.2f} seconds")
+                
+                # Return partial success result
+                result = PipelineResult(
+                    success=False,
+                    output_file=final_script_path,
+                    execution_time=execution_time,
+                    statistics={
+                        "selected_models": len(model_selection.selected_models),
+                        "processing_time": execution_time,
+                        "validation_error": validation_result.error_message,
+                        "timestamp": datetime.now().isoformat(),
+                        "data_source": data_source,
+                        "problem_type": problem_description[:100],
+                        "final_script": final_script_path
+                    },
+                    error_message=f"Validation failed: {validation_result.error_message}"
+                )
             
             return result
             
         except Exception as e:
             execution_time = time.time() - start_time
-            error_msg = f"Pipeline failed: {str(e)}"
-            print(f"\n❌ PIPELINE FAILED: {error_msg}")
-            print(f"🐛 Debug info: {type(e).__name__}: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"\n❌ PIPELINE EXECUTION FAILED!")
+            print(f"⚠️ Error: {str(e)}")
+            print(f"⏱️ Execution time before failure: {execution_time:.2f} seconds")
             
-            result = PipelineResult(
+            return PipelineResult(
                 success=False,
                 output_file="",
                 execution_time=execution_time,
-                statistics={},
-                error_message=error_msg
+                statistics={
+                    "error_stage": "pipeline_execution",
+                    "timestamp": datetime.now().isoformat()
+                },
+                error_message=str(e)
             )
-            
-            return result
 
     def execute_generated_script(self, script_path: str, data_folder: str = None):
         """
-        Execute the generated ML solution script
+        DEPRECATED: Execute generated script manually
         
-        Args:
-            script_path (str): Path to the generated script
-            data_folder (str): Optional path to data folder
+        This method is now replaced by the validator agent which
+        automatically validates and executes the code in STEP 12
         """
-        print(f"\n🚀 EXECUTING GENERATED ML SOLUTION: {script_path}")
-        print("="*60)
+        print("⚠️ This method is deprecated. Validation and execution")
+        print("   is now handled automatically by the Validator Agent in STEP 12")
+        print(f"📄 Script location: {script_path}")
         
-        # Check script exists
-        script_file = Path(script_path)
-        if not script_file.exists():
-            print(f"❌ Script not found: {script_path}")
-            return
-        
-        try:
-            # Execute the script
-            print("🔄 Running the generated ML solution...")
-            result = subprocess.run(
-                [sys.executable, script_path],
-                cwd=Path.cwd(),
-                capture_output=True,
-                text=True,
-                timeout=600  # 10 minutes timeout for ML tasks
-            )
-            
-            print("📤 SCRIPT OUTPUT:")
-            print("-" * 40)
-            if result.stdout:
-                print(result.stdout)
-            
-            if result.stderr:
-                print("\n⚠️ WARNINGS/ERRORS:")
-                print(result.stderr)
-            
-            print(f"\n✅ Script execution completed with return code: {result.returncode}")
-            
-            # Check for common output files
-            output_files = []
-            for pattern in ["*.csv", "*.json", "*.txt", "results.*", "output.*", "predictions.*"]:
-                output_files.extend(Path.cwd().glob(pattern))
-            
-            if output_files:
-                print(f"\n🎯 Generated output files:")
-                for output_file in output_files:
-                    print(f"   📄 {output_file.name} ({output_file.stat().st_size} bytes)")
-                    
-                    # Try to show sample content for small files
-                    if output_file.suffix in ['.csv', '.json', '.txt'] and output_file.stat().st_size < 10000:
-                        try:
-                            print(f"   📋 Sample content from {output_file.name}:")
-                            with open(output_file, 'r', encoding='utf-8') as f:
-                                content = f.read(500)  # First 500 chars
-                                print(f"      {content[:200]}{'...' if len(content) > 200 else ''}")
-                        except Exception as e:
-                            print(f"      ⚠️ Could not read content: {e}")
-            else:
-                print("\n⚠️ No output files found in current directory")
+        # Có thể giữ lại cho manual execution nếu cần
+        if os.path.exists(script_path):
+            try:
+                print(f"🚀 Manually executing: {script_path}")
+                result = subprocess.run([sys.executable, script_path], 
+                                      capture_output=True, text=True, timeout=300)
                 
-        except subprocess.TimeoutExpired:
-            print("❌ Script execution timed out (10 minutes)")
-        except Exception as e:
-            print(f"❌ Error executing script: {e}")
+                if result.returncode == 0:
+                    print("✅ Manual execution successful!")
+                    print(f"📋 Output: {result.stdout}")
+                else:
+                    print("❌ Manual execution failed!")
+                    print(f"⚠️ Error: {result.stderr}")
+                    
+            except subprocess.TimeoutExpired:
+                print("⏰ Manual execution timeout!")
+            except Exception as e:
+                print(f"❌ Manual execution error: {e}")
+        else:
+            print(f"❌ Script not found: {script_path}")
 
 def main():
-    """Main entry point for general ML pipeline"""
+    """Main entry point with enhanced validation"""
     pipeline = GeneralMLPipeline()
     
-    print("🎯 GENERAL ML PIPELINE - UNIVERSAL SOLUTION GENERATOR")
-    print("="*70)
-    print("🚀 This pipeline can solve ANY machine learning problem!")
-    print("📋 Supported domains: Computer Vision, NLP, Audio, Tabular Data, Time Series")
-    print("🤖 Works with any HuggingFace model")
-    print("🔗 Supports various data sources (Google Drive, local files, URLs)")
-    print("="*70)
+    print("\n🎯 TESTING GENERAL ML PIPELINE WITH VALIDATION")
+    print("=" * 60)
     
-    # Show example configurations
+    # Test problem - credit card fraud detection  
+    test_problem = """
+    Credit Card Fraud Detection:
     
-    print(f"\n💡 To use this pipeline, call:")
-    print(f"   pipeline.execute_pipeline(problem_description, model_pool, data_source)")
-    print(f"\n📄 Default configuration will be used for demonstration...")
+    Analyze credit card transaction data to detect fraudulent transactions.
+    The dataset contains transaction features like Time, Amount, and anonymized features V1-V28.
+    Build a binary classification model to predict fraud (1) vs normal (0) transactions.
     
-    # Execute with default configuration
+    Requirements:
+    - Input: CSV file with transaction data
+    - Output: CSV file with ID and class (0 or 1) predictions
+    - Handle class imbalance (fraud is rare)
+    - Optimize for high recall on fraud detection
+    """
+    
+    # Execute complete pipeline with validation
     result = pipeline.execute_pipeline(
-        problem_description=DEFAULT_PROBLEM,
+        problem_description=test_problem,
         model_pool=DEFAULT_MODEL_POOL,
-        data_source=""
+        data_source="Credit card transaction dataset for fraud detection testing",
+        data_description=''
     )
     
-    # Display summary
-    display_pipeline_summary(pipeline.results)
+    # Final summary
+    print(f"\n🏁 FINAL PIPELINE RESULT:")
+    print("=" * 60)
+    print(f"Success: {result.success}")
+    print(f"Output: {result.output_file}")
+    print(f"Execution time: {result.execution_time:.2f}s")
+    print(f"Error: {result.error_message or 'None'}")
+    print("=" * 60)
     
     if result.success:
-        print(f"\n📁 Intermediate files saved in: {TEMP_DIR}")
-        print(f"📄 Final solution script in: {OUTPUTS_DIR}")
-        print(f"\n🚀 To run the generated solution:")
-        print(f"   python {result.output_file}")
+        print(f"🎉 Pipeline completed successfully!")
+        print(f"📄 CSV output ready: {result.output_file}")
         
-        # List generated files
-        temp_files = list(Path(TEMP_DIR).glob("*.json")) if Path(TEMP_DIR).exists() else []
-        if temp_files:
-            print(f"\n📋 Debug files available:")
-            for f in temp_files:
-                print(f"   📄 {f.name}")
+        # Hiển thị sample output nếu có
+        if result.statistics and 'validation_stats' in result.statistics:
+            val_stats = result.statistics['validation_stats']
+            if 'sample_data' in val_stats:
+                print(f"\n📊 Sample output data:")
+                print(val_stats['sample_data'])
+    else:
+        print(f"⚠️ Pipeline completed with issues")
+        print(f"💡 Check logs and generated files for debugging")
 
 if __name__ == "__main__":
     main()

@@ -34,6 +34,7 @@ class PreprocessingAgent:
         SELECTED MODEL: {selected_models}
 
         DATA SOURCE: {data_source} contains input data files for preprocessing validation.
+        Folder format description: {data_description}: it provide information about the folder structure and the files inside the folder.
 
         🎯 Task: Generate a complete, deployment-ready preprocessing code, compatible with all data types (Images / Text / Audio / Tabular / Time Series), with the following exact 4 fields in JSON format:
 
@@ -87,7 +88,7 @@ class PreprocessingAgent:
 
         The code must be flexible and capable of handling multiple data types.
 
-        Support for loading data from Google Drive if necessary.
+        Support for loading data from local path if necessary.
 
         Do not include any text outside the JSON.
 

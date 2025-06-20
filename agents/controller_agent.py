@@ -32,7 +32,8 @@ class ControllerAgent:
         You are an AI Controller Agent specialized in analyzing and planning for Machine Learning problems.
         Given:
             PROBLEM DESCRIPTION: {problem_description}
-            DATA SOURCE: {data_source} contains files used for testing the solution.
+            DATA SOURCE: {data_source} link to the folder contains files used for testing the solution.
+            Folder format description: {data_description}: it provide information about the folder structure and the files inside the folder.
         Generate a detailed guideline with EXACTLY 4 FIELDS as follows:
             "problem_analysis":
             - Identify the problem type (Classification / Regression / Detection / NLP / etc.)
