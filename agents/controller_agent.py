@@ -5,6 +5,8 @@ from langchain_core.output_parsers import PydanticOutputParser
 import sys
 import os
 import time
+import json
+import re
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from models.data_models import Guideline
@@ -15,56 +17,46 @@ class ControllerAgent:
     def __init__(self):
         print("🎯 Controller Agent: Đang khởi tạo...")
         try:
+            # STRUCTURED OUTPUT CONFIGURATION
             self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
             print("✅ Controller Agent: LLM khởi tạo thành công")
         except Exception as e:
             print(f"❌ Controller Agent: Lỗi khởi tạo LLM: {e}")
             raise
-            
+
+        # Output parser
         self.guideline_parser = PydanticOutputParser(pydantic_object=Guideline)
         print("✅ Controller Agent: Parser khởi tạo thành công")
         
         self.guideline_template = ChatPromptTemplate.from_template("""
-        Bạn là AI Controller Agent chuyên phân tích và lập kế hoạch cho các bài toán Machine Learning.
-        
-        PROBLEM DESCRIPTION: {problem_description}
-        DATA SOURCE: {data_source}
-        
-        Hãy tạo guideline chi tiết với CHÍNH XÁC 5 FIELDS sau:
-        
-        1. "problem_analysis": 
-           - Xác định loại bài toán (Classification/Regression/Detection/NLP/etc)
-           - Phân tích input/output requirements
-           - Determine domain (Computer Vision, NLP, Time Series, Tabular Data)
-           - Identify key challenges và constraints
-        
-        2. "solution_approach":
-           - Recommend overall pipeline architecture
-           - Define model selection strategy
-           - Define preprocessing strategy  
-           - Define postprocessing strategy
-           - Approach để giải quyết problem
-        
-        3. "data_requirements":
-           - Analyze expected data format từ data source
-           - Define preprocessing needs
-           - Specify required transformations
-           - Data validation requirements
-        
-        4. "pipeline_overview":
-           - Step-by-step workflow chi tiết
-           - Data flow architecture
-           - Model integration strategy
-           - Output format specifications
-           - Error handling approach
-        
-        5. "success_criteria":
-           - Output quality requirements
-           - Performance metrics
-           - Deployment considerations
-           - Validation criteria
-        
-        QUAN TRỌNG: Phải trả về JSON với CHÍNH XÁC 5 fields trên. Không được thiếu field nào!
+        You are an AI Controller Agent specialized in analyzing and planning for Machine Learning problems.
+        Given:
+            PROBLEM DESCRIPTION: {problem_description}
+            DATA SOURCE: {data_source} contains files used for testing the solution.
+        Generate a detailed guideline with EXACTLY 4 FIELDS as follows:
+            "problem_analysis":
+            - Identify the problem type (Classification / Regression / Detection / NLP / etc.)
+            - Analyze input/output requirements
+            - Determine the domain (Computer Vision, NLP, Time Series, Tabular Data, etc.)
+            - Identify key challenges and constraints
+            "solution_approach":
+            - Recommend the overall pipeline architecture
+            - Define model selection strategy
+            - Define preprocessing strategy
+            - Define postprocessing strategy
+            - Summarize the proposed approach to solve the problem
+            "data_requirements":
+            - Analyze expected data format from the data source
+            - Define preprocessing needs
+            - Specify required transformations
+            - Outline data validation requirements
+            "pipeline_overview":
+            - Provide a detailed step-by-step workflow
+            - Describe the data flow architecture
+            - Explain the model integration strategy
+            - Specify output format
+            - Include error handling approach
+        IMPORTANT: The response MUST be valid JSON and include EXACTLY these 4 fields!
         
         {format_instructions}
         """)
@@ -93,15 +85,8 @@ class ControllerAgent:
             api_time = time.time() - start_time
             print(f"✅ Controller: API call thành công! Thời gian: {api_time:.2f}s")
             print(f"📄 Controller: Response length: {len(response.content)} characters")
-            
-            print("🔍 Controller: Đang clean và parse response...")
-            
-            # Clean response content
-            cleaned_content = self._clean_json_content(response.content)
-            
-            guideline = self.guideline_parser.parse(cleaned_content)
-            print("✅ Controller: Parse thành công!")
-            
+            guideline = self.guideline_parser.parse(response.content)
+            print("✅ Controller: Parse thành công")
             # Debug output
             print(f"📊 Controller Result Preview:")
             print(f"   🔍 Problem Analysis: {guideline.problem_analysis[:100]}...")
@@ -110,56 +95,10 @@ class ControllerAgent:
             
             print("✅ Controller: Hoàn thành guideline creation!")
             return guideline
-            
+        
         except Exception as e:
             print(f"❌ Controller: Lỗi trong quá trình tạo guideline: {e}")
             print(f"🐛 Controller: Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
             raise
-
-    def _clean_json_content(self, content: str) -> str:
-        """Clean JSON content để fix escape và format issues"""
-        try:
-            # Extract JSON từ markdown code blocks nếu có
-            if "```json" in content:
-                import re
-                json_match = re.search(r'```json\s*(.*?)\s*```', content, re.DOTALL)
-                if json_match:
-                    content = json_match.group(1)
-            
-            # Fix missing comma issues trong JSON 
-            import re
-            import json
-            
-            # Fix missing comma between fields - tìm pattern }"field_name":
-            content = re.sub(r'"\s*\n\s*"([^"]+)":', r'",\n  "\1":', content)
-            
-            # Fix newlines in string values
-            content = re.sub(r'\\n', r'\\n', content)
-            
-            # Try to parse and reformat to ensure valid JSON
-            try:
-                # Test parse để check validity
-                parsed = json.loads(content)
-                # Reformat với proper spacing
-                content = json.dumps(parsed, ensure_ascii=False, indent=2)
-                print("✅ Controller: JSON successfully validated and reformatted")
-            except json.JSONDecodeError as e:
-                print(f"⚠️ Controller: JSON still invalid after cleaning: {e}")
-                # Additional fixes for common issues
-                content = content.replace('"\n  "', '",\n  "')
-                content = content.replace('",\n}', '"\n}')
-            
-            # Save cleaned content for debugging
-            import os
-            os.makedirs("temp", exist_ok=True)
-            with open("temp/cleaned_controller_response.txt", "w", encoding="utf-8") as f:
-                f.write(content)
-            
-            print("✅ Controller: JSON content cleaned successfully")
-            return content
-            
-        except Exception as e:
-            print(f"⚠️ Controller: Error cleaning JSON content: {e}")
-            return content

@@ -40,6 +40,7 @@ class SelectorAgent:
         5. Specific requirements và constraints
         
         Trả về analysis dưới dạng structured format.
+                                                                          
         """)
         
         # Template phân tích model từ HuggingFace content
@@ -58,44 +59,57 @@ class SelectorAgent:
         6. Model performance và capabilities
         
         Trả về analysis chi tiết về model capabilities.
+        
+        {format_instructions}
         """)
         
+        print("✅ Selector Agent: Templates khởi tạo thành công")
+
         # Template đánh giá compatibility và selection
         self.selection_template = ChatPromptTemplate.from_template("""
-        Bạn là AI Model Selector chuyên chọn model tốt nhất cho bài toán ML.
-        
+        You are an expert AI Model Selector. Your job is to choose the best model(s) for a given Machine Learning problem.
+
         PROBLEM ANALYSIS: {problem_analysis}
-        
-        MODELS ANALYZED:
+
+        MODELS ANALYZED:  
         {models_analysis}
-        
-        Nhiệm vụ:
+
+        Your task involves three key phases:
+
+        ---
+
         1. 🎯 COMPATIBILITY ASSESSMENT:
-           - So sánh task types: problem vs models
-           - Đánh giá domain alignment
-           - Kiểm tra input/output compatibility
-           - Xem xét transfer learning potential
-        
-        2. 🏆 MODEL SELECTION:
-           - Chọn CHÍNH XÁC 1 model tốt nhất phù hợp nhất
-           - Ưu tiên: Task relevance > Domain alignment > Performance
-           - Consider ease of adaptation nếu cần
-        
-        3. 📋 SELECTION REASONING:
-           - Explain tại sao model này là best choice
-           - Identify required adaptations/fine-tuning
-           - Mention pros/cons compared to other options
-        
-        4. 📊 OUTPUT FORMAT:
-           - selected_models: [1 best model URL]
-           - model_purposes: {{model_url: purpose_description}}
-           - model_descriptions: {{model_url: detailed_description}}
-           - model_inputs: {{model_url: input_format}}
-           - model_outputs: {{model_url: output_format}}
-           - selection_reasoning: detailed explanation
-        
-        Chọn model dựa trên analysis thực tế từ HuggingFace content!
-        
+        - Compare task types between the problem and candidate models.
+        - Evaluate domain alignment and data relevance.
+        - Check input/output compatibility.
+        - Assess potential for transfer learning and ease of integration.
+
+        2. 🏆 MODEL SELECTION STRATEGY:
+        - Select **EXACTLY ONE best model** that is most suitable for the given task.
+        - Prioritize in this order: Task relevance > Domain alignment > Pretrained knowledge > Ease of adaptation.
+        - Justify why this model is the optimal choice, not just based on popularity.
+
+        3. 🧠 SELECTION REASONING:
+        - Clearly explain **why the selected model is the best fit**.
+        - Include potential advantages and limitations.
+        - Mention required modifications or fine-tuning steps if applicable.
+
+        ---
+
+        📦 OUTPUT FORMAT (must be **valid JSON** with exactly 6 fields):
+
+        - `"selected_model"`: A list containing the **URL of exactly 1 best-fit model**.
+        - `"model_purpose"`: A dictionary mapping each selected model's URL to a short explanation of what it is designed to do.
+        - `"model_description"`: A dictionary mapping each selected model's URL to a detailed description (e.g. pretrained dataset, domain, architecture).
+        - `"model_input"`: A dictionary mapping each selected model's URL to its expected input format.
+        - `"model_output"`: A dictionary mapping each selected model's URL to its output format.
+        - `"selection_reason"`: A detailed textual explanation of **why this model is the most appropriate**, how it fits the problem, and what makes it better than other options.
+
+        ⚠️ IMPORTANT:
+        - The output **must be valid JSON** matching the above 6 fields. No extra fields, no markdown, no commentary.
+        - All model information should be derived from the given `MODELS ANALYZED` section.
+        ⚠️ All string values **must be on a single line** or use **\\n** to indicate newlines. Do NOT use raw line breaks.
+
         {format_instructions}
         """)
         
@@ -189,7 +203,8 @@ class SelectorAgent:
             # LLM analyze model
             prompt = self.model_analysis_template.format_prompt(
                 model_url=model_url,
-                model_content=model_content
+                model_content=model_content,
+                format_instructions=self.parser.get_format_instructions()
             )
             
             try:
@@ -226,7 +241,7 @@ class SelectorAgent:
             prompt = self.selection_template.format_prompt(
                 problem_analysis=problem_analysis,
                 models_analysis=models_analysis,
-                format_instructions=self.parser.get_format_instructions()
+                format_instructions = self.parser.get_format_instructions()
             )
             
             response = self.llm.invoke(prompt.to_messages())
@@ -252,15 +267,3 @@ class SelectorAgent:
             print(f"🐛 Selector: Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
-            
-            # Fallback selection
-            print("🔄 Selector: Thực hiện fallback selection...")
-            fallback_selection = ModelSelection(
-                selected_models=[model_pool[0]] if model_pool else [],
-                model_purposes={model_pool[0]: "Fallback selection"} if model_pool else {},
-                model_descriptions={model_pool[0]: "Selected due to analysis failure"} if model_pool else {},
-                model_inputs={model_pool[0]: "Unknown input format"} if model_pool else {},
-                model_outputs={model_pool[0]: "Unknown output format"} if model_pool else {},
-                selection_reasoning=f"Fallback selection due to error: {str(e)}"
-            )
-            return fallback_selection

@@ -14,37 +14,22 @@ from main_pipeline import GeneralMLPipeline
 # 📝 PROBLEM DESCRIPTION - Mô tả bài toán cần giải quyết
 PROBLEM_DESCRIPTION = """
 "Bối cảnh của vấn đề:
-Đây là một nhiệm vụ hồi quy. Mục tiêu là dự đoán giá trị trung bình của nhà ở các quận của California bằng cách sử dụng các đặc trưng từ cuộc điều tra dân số năm 1990, chẳng hạn như thu nhập trung bình, tuổi trung bình của nhà ở, tổng số phòng, v.v. ()
+Điều quan trọng là các công ty thẻ tín dụng có thể nhận ra các giao dịch thẻ tín dụng gian lận để khách hàng không phải trả tiền cho những mặt hàng mà họ không mua. Một vấn đề của task này là dữ liệu training khá là ít cho giao dịch gian lận gây vấn đề mất cân bằng nhãn dữ liệu.
 
 Yêu cầu cụ thể cần đạt được:
-Xây dựng một hệ thống có khả năng nhận đầu vào là một list các features của khu vực có liên quan đến giá trung bình của nhà ở và đầu ra hệ thống là phân loại khu vực đó thuộc nhóm “rẻ”, “trung bình” hay “đắt” để dễ trực quan hóa hoặc định hướng chính sách
-Mô hình cần xử lý đầu vào là 1 list các features liên quan đến giá trung bình của nhà ở
-Đầu ra là nhãn của nhà ở khu vực đấy thuộc về
+Xây dựng một hệ thống có khả năng nhận đầu vào là một list các features liên quan đến sự gian lận của giao dịch và đầu ra hệ thống là phân loại giao dịch cụ thể đó có gian lận hay không
+Mô hình cần xử lý đầu vào là 1 list các feature liên quan đến gian lận của giao dịch
+Đầu ra là nhãn của giao dịch đó thuộc về
 
 Định dạng dữ liệu đầu vào cho bài toán tổng thể:
 Một file test.csv. Mỗi hàng là features cho từng task bao gồm các cột:
-
-MedInc: Thu nhập trung vị của người dân sống trong khu vực (block)
-HouseAge: Tuổi trung vị của các căn nhà trong khu vực
-AveRooms: Số phòng trung bình của các căn nhà trong khu vực
-AveBedrms: Số phòng ngủ trung bình của các căn nhà trong khu vực
-Population: Số người sinh sống trong khu vực
-AveOccup: Số người trung bình sống chung trong một hộ (dưới cùng một mái nhà)
-Latitude: Vĩ độ địa lý
-Longitude: Kinh độ địa lý
-ID: id của task
+28 đặc trưng V1, V2, … V28 là các thành phần chính thu được từ PCA (Không được công bố cụ thể);  hai đặc trưng không được biến đổi bằng PCA là 'Time' và 'Amount'. Đặc trưng 'Time' thể hiện số giây đã trôi qua giữa mỗi giao dịch và giao dịch đầu tiên trong tập dữ liệu. Đặc trưng 'Amount' là số tiền của giao dịch, đặc trưng này có thể được sử dụng cho học tập nhạy cảm với chi phí phụ thuộc vào ví dụ và cuối cùng là ID: id của task
  
 Định dạng kết quả đầu ra mong muốn cho bài toán tổng thể:
 File output.csv mỗi hàng là kết quả dự đoán mỗi task
 có các cột:
 ID: id của task
-MedHouseVal: nhóm  nhà ở khu vực đó thuộc về
-
-Các nhóm có thể là:
-low: nhóm ""rẻ"" có giá trung bình < 1
-medium: nhóm ""rẻ"" có 1 <= giá trung bình < 2.5
-high: nhóm ""rẻ"" có giá trung bình >= 2.5
-
+class: 1 nếu là giao dịch gian lận, 0 với trường hợp ngược lại
 "
 """
 
@@ -60,7 +45,7 @@ MODEL_POOL = [
 ]
 
 # 🔗 DATA SOURCE - Link Google Drive hoặc đường dẫn dữ liệu
-DATA_SOURCE = "https://drive.google.com/drive/folders/1wdhKcJGNqGF-CXopxIFygrojb1gR31xI?usp=sharing"
+DATA_SOURCE = "https://drive.google.com/drive/folders/1AuzgvKbGMi0XWBlryYkl_RPfUCKJXAZV?usp=sharing"
 
 # 📊 TEST INFO - Thông tin mô tả test case
 
